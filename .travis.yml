@@ -15,8 +15,8 @@ addons:
       name: "icn-team/hicn"
       description: "Run a coverity scan on the FDio/hICN project"
     notification_email: muscariello@ieee.org
-    build_command_prepend: "mkdir build; icd build; cmaike -DHICNPLUGIN=ON -DSYSREPOPLUGIN=ON -DTELEMETRY=ON .."
-    build_command: "make"
+    build_command_prepend: "export COVERITY_UNSUPPORTED_COMPILER_INVOCATION=1"
+    build_command: "cd build; make"
     branch_pattern: coverity_scan
 
 before_script:
@@ -25,4 +25,4 @@ before_script:
     - sudo apt-get update
     - sudo apt-get install -y libyang sysrepo vpp-dev libparc-dev python3-ply libasio-dev
     - sudo apt-get install -y libmemif-dev libmemif libconfig-dev
-    - mkdir build; cd build; cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN=ON -DTELEMETRY=ON ..
+    - mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..
