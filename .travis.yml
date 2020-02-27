@@ -1,4 +1,5 @@
 env:
+
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
@@ -7,7 +8,21 @@ env:
 before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
+dist: bionic
 addons:
+  apt:
+    sources:
+      - https://dl.bintray.com/icn-team/apt-hicn-extras
+      - https://packagecloud.io/fdio/release/ubuntu
+    packages:
+    - libparc
+    - libasio-dev
+    - vpp-dev
+    - libmemif-dev
+    - libmemif
+    - libconfig-dev
+    - libyang
+    - sysrepo
   coverity_scan:
     project:
       name: "icn-team/hicn"
@@ -18,7 +33,8 @@ addons:
     branch_pattern: coverity_scan
 
 script:
+  - 
   - mkdir build 
   - cd build
-  - cmake -DHICN_PLUGIN=ON .. 
+  - cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN -DTELEMETRY=ON .. 
   - make
