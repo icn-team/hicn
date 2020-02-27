@@ -15,7 +15,7 @@ before_script:
     - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
     - sudo apt-get update
     - sudo apt-get install -y libyang sysrepo vpp-dev vpp libparc-dev python3-ply libasio-dev
-    - sudo apt-get install -y libmemif-dev libmemif libconfig-dev collectd
+    - sudo apt-get install -y libmemif-dev libmemif libconfig-dev collectd collectd-dev
 
 script:
     - mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..
