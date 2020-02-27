@@ -28,13 +28,19 @@ addons:
       name: "icn-team/hicn"
       description: "Run a coverity scan on the FDio/hICN project"
     notification_email: muscariello@ieee.org
-    build_command_prepend: "mkdir build; cd build; cmake -DHICN_PLUGIN=ON .."
+    build_command_prepend: "mkdir build;"
     build_command: "make"
     branch_pattern: coverity_scan
 
+before_script:
+    - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
+    - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
+    - apt-get update && apt-get install -y libyang sysrepo
+    - apt-get install -y vpp-dev libparc-dev python3-ply libasio-dev
+    - apt-get libmemif-dev libmemif libconfig-dev
+
 script:
-  - 
-  - mkdir build 
+  - mkdir -p build 
   - cd build
   - cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN -DTELEMETRY=ON .. 
   - make
