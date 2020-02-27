@@ -22,10 +22,10 @@ addons:
 before_script:
     - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
     - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
-    - apt-get update
-    - apt-get install -y libyang sysrepo
-    - apt-get install -y vpp-dev libparc-dev python3-ply libasio-dev
-    - apt-get libmemif-dev libmemif libconfig-dev
+    - sudo apt-get update
+    - sudo apt-get install -y libyang sysrepo
+    - sudo apt-get install -y vpp-dev libparc-dev python3-ply libasio-dev
+    - sudo apt-get libmemif-dev libmemif libconfig-dev
 
 script:
   - mkdir -p build 
