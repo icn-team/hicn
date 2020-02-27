@@ -15,7 +15,7 @@ addons:
       name: "icn-team/hicn"
       description: "Run a coverity scan on the FDio/hICN project"
     notification_email: muscariello@ieee.org
-    build_command_prepend: "mkdir build;"
+    build_command_prepend: "mkdir build; cd build; cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN=ON -DTELEMETRY=ON .."
     build_command: "make"
     branch_pattern: coverity_scan
 
@@ -27,7 +27,4 @@ before_script:
     - sudo apt-get install -y libmemif-dev libmemif libconfig-dev
 
 script:
-  - mkdir -p build 
-  - cd build
-  - cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN=ON -DTELEMETRY=ON .. 
   - make
