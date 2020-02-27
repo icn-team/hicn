@@ -29,5 +29,5 @@ before_script:
 script:
   - mkdir -p build 
   - cd build
-  - cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN -DTELEMETRY=ON .. 
+  - cmake -DHICNPLUGIN=ON -DSYSREPOPLUGIN=ON -DTELEMETRY=ON .. 
   - make
