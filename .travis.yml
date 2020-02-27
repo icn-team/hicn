@@ -10,6 +10,16 @@ before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 dist: bionic
+before_script:
+    - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
+    - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
+    - sudo apt-get update
+    - sudo apt-get install -y libyang sysrepo vpp-dev libparc-dev python3-ply libasio-dev
+    - sudo apt-get install -y libmemif-dev libmemif libconfig-dev
+
+script:
+    - mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..
+
 addons:
   coverity_scan:
     project:
@@ -20,10 +30,3 @@ addons:
     build_command: "cd build; make"
     branch_pattern: coverity_scan
 
-before_script:
-    - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
-    - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
-    - sudo apt-get update
-    - sudo apt-get install -y libyang sysrepo vpp-dev libparc-dev python3-ply libasio-dev
-    - sudo apt-get install -y libmemif-dev libmemif libconfig-dev
-    - mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..
