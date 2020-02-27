@@ -10,19 +10,6 @@ before_install:
 
 dist: bionic
 addons:
-  apt:
-    sources:
-      - https://dl.bintray.com/icn-team/apt-hicn-extras
-      - https://packagecloud.io/fdio/release/ubuntu
-    packages:
-    - libparc
-    - libasio-dev
-    - vpp-dev
-    - libmemif-dev
-    - libmemif
-    - libconfig-dev
-    - libyang
-    - sysrepo
   coverity_scan:
     project:
       name: "icn-team/hicn"
