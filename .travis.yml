@@ -14,7 +14,7 @@ before_script:
     - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
     - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
     - sudo apt-get update
-    - sudo apt-get install -y libyang sysrepo vpp-dev libparc-dev python3-ply libasio-dev
+    - sudo apt-get install -y libyang sysrepo vpp-dev vpp libvpp-infra libparc-dev python3-ply libasio-dev
     - sudo apt-get install -y libmemif-dev libmemif libconfig-dev
 
 script:
