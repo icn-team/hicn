@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-#include <hicn/transport/interfaces/socket.h>
-#include <hicn/transport/utils/verifier.h>
+#include <hicn/transport/core/interest.h>
+#include <hicn/transport/interfaces/portal.h>
+#include <hicn/transport/security/verifier.h>
+#include <hicn/transport/utils/log.h>
 
 // Let's make the linker happy
 #if !TRANSPORT_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL
@@ -23,6 +25,7 @@ TRANSPORT_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0;
 #endif
 #endif
 
+#include <asio/signal_set.hpp>
 #include <asio/steady_timer.hpp>
 #include <chrono>
 #include <map>
@@ -81,7 +84,7 @@ class Configuration {
   }
 };
 
-class Client : interface::BasePortal::ConsumerCallback {
+class Client : interface::Portal::ConsumerCallback {
  public:
   Client(Configuration *c)
       : portal_(), signals_(portal_.getIoService(), SIGINT) {
@@ -211,6 +214,8 @@ class Client : interface::BasePortal::ConsumerCallback {
     }
   }
 
+  void onError(std::error_code ec) override {}
+
   void doPing() {
     Name interest_name(config_->name_, (uint32_t)sequence_number_);
     hicn_format_t format;
@@ -296,7 +301,7 @@ class Client : interface::BasePortal::ConsumerCallback {
 
  private:
   SendTimeMap send_timestamps_;
-  interface::BasePortal portal_;
+  interface::Portal portal_;
   asio::signal_set signals_;
   uint64_t sequence_number_;
   uint64_t last_jump_;
