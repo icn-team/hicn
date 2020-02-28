@@ -26,7 +26,6 @@ addons:
       name: "icn-team/hicn"
       description: "Run a coverity scan on the FDio/hICN project"
     notification_email: muscariello@ieee.org
-    build_command_prepend: "export COVERITY_UNSUPPORTED_COMPILER_INVOCATION=1"
-    build_command: "cd build; make"
+    build_command_prepend:  "mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON .."
+    build_command: "export COVERITY_UNSUPPORTED_COMPILER_INVOCATION=1; make"
     branch_pattern: coverity_scan
-
