@@ -14,12 +14,15 @@
  */
 
 #include <hicn/transport/config.h>
+#include <hicn/transport/core/content_object.h>
+#include <hicn/transport/core/interest.h>
 #include <hicn/transport/interfaces/rtc_socket_producer.h>
 #include <hicn/transport/interfaces/socket_consumer.h>
 #include <hicn/transport/interfaces/socket_producer.h>
+#include <hicn/transport/security/identity.h>
+#include <hicn/transport/security/signer.h>
 #include <hicn/transport/utils/chrono_typedefs.h>
-#include <hicn/transport/utils/identity.h>
-#include <hicn/transport/utils/signer.h>
+#include <hicn/transport/utils/literals.h>
 
 #ifdef SECURE_HICNTRANSPORT
 #include <hicn/transport/interfaces/p2psecure_socket_consumer.h>
@@ -29,8 +32,9 @@
 #ifndef _WIN32
 #include <hicn/transport/utils/daemonizator.h>
 #endif
-#include <hicn/transport/utils/literals.h>
 
+#include <asio.hpp>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <unordered_set>
@@ -153,7 +157,7 @@ struct ServerConfiguration {
         content_lifetime(600000000_U32),
         content_object_size(1440),
         download_size(20 * 1024 * 1024),
-        hash_algorithm(HashAlgorithm::SHA_256),
+        hash_algorithm(utils::CryptoHashType::SHA_256),
         keystore_name(""),
         passphrase(""),
         keystore_password("cisco"),
@@ -177,7 +181,7 @@ struct ServerConfiguration {
   std::uint32_t content_lifetime;
   std::uint16_t content_object_size;
   std::uint32_t download_size;
-  HashAlgorithm hash_algorithm;
+  utils::CryptoHashType hash_algorithm;
   std::string keystore_name;
   std::string passphrase;
   std::string keystore_password;
@@ -294,7 +298,7 @@ class HIperfClient {
   void processLeavingInterest(ConsumerSocket &c, const Interest &interest) {}
 
   void handleTimerExpiration(ConsumerSocket &c,
-                             const protocol::TransportStatistics &stats) {
+                             const TransportStatistics &stats) {
     if (configuration_.rtc_) return;
 
     const char separator = ' ';
@@ -642,9 +646,10 @@ class HIperfClient {
 
     void readSuccess(std::size_t total_size) noexcept override {
       std::cout << "Key size: " << total_size << " bytes" << std::endl;
+      afterRead();
     }
 
-    void afterRead() override {
+    void afterRead() {
       std::shared_ptr<utils::Verifier> verifier =
           std::make_shared<utils::Verifier>();
       verifier->addKeyFromPassphrase(*key_, utils::CryptoSuite::HMAC_SHA256);
@@ -836,7 +841,7 @@ class HIperfServer {
 
   std::shared_ptr<utils::Identity> getProducerIdentity(
       std::string &keystore_name, std::string &keystore_password,
-      HashAlgorithm &hash_algorithm) {
+      utils::CryptoHashType &hash_algorithm) {
     if (access(keystore_name.c_str(), F_OK) != -1) {
       return std::make_shared<utils::Identity>(keystore_name, keystore_password,
                                                hash_algorithm);
@@ -1330,11 +1335,11 @@ int main(int argc, char *argv[]) {
       }
       case 'y': {
         if (strncasecmp(optarg, "sha256", 6) == 0) {
-          server_configuration.hash_algorithm = HashAlgorithm::SHA_256;
+          server_configuration.hash_algorithm = utils::CryptoHashType::SHA_256;
         } else if (strncasecmp(optarg, "sha512", 6) == 0) {
-          server_configuration.hash_algorithm = HashAlgorithm::SHA_512;
+          server_configuration.hash_algorithm = utils::CryptoHashType::SHA_512;
         } else if (strncasecmp(optarg, "crc32", 5) == 0) {
-          server_configuration.hash_algorithm = HashAlgorithm::CRC32C;
+          server_configuration.hash_algorithm = utils::CryptoHashType::CRC32C;
         } else {
           std::cerr << "Ignored unknown hash algorithm. Using SHA 256."
                     << std::endl;
@@ -1355,9 +1360,6 @@ int main(int argc, char *argv[]) {
       case 'B': {
         auto str = std::string(optarg);
         std::transform(str.begin(), str.end(), str.begin(), ::tolower);
-        std::cout << "---------------------------------------------------------"
-                     "---------------------->"
-                  << str << std::endl;
         server_configuration.production_rate_ = str;
         options = -1;
         break;
