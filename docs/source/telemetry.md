@@ -41,18 +41,18 @@ hICN collectd plugins have been tested in:
 
 Build dependencies:
 
-- VPP 20.01
-  - DEB packages (can be found https://packagecloud.io/fdio/release/install):
+- VPP 20.01, Debian packages can be found on [packagecloud](https://packagecloud.io/fdio/release/install):
   - vpp
   - libvppinfra-dev
   - vpp-dev
   - hicn-plugin-dev
+- `collectd` and `collectd-dev`: `sudo apt install collectd collectd-dev`
 
 ## Getting started
 
-Collectd needs to be configured in order to use the hICN collectd plugins.
-The configuration can be achieved editing the file '/etc/collectd/collectd.conf'
-and adding the following lines:
+Collectd needs to be configured in order to use the hICN plugins.
+To enable the plugins, add the following lines to `/etc/collectd/collectd.conf`:
+
 ```
 LoadPlugin vpp
 LoadPlugin vpp_hicn
@@ -72,7 +72,7 @@ Edit the configuration file as the following:
 # Global                                                             #
 ######################################################################
 FQDNLookup true
-BaseDir "/collectd"
+BaseDir "/var/lib/collectd"
 Interval 1
 
 ######################################################################
@@ -99,12 +99,12 @@ LoadPlugin vpp_hicn
 # Plugin configuration                                               #
 ######################################################################
 <Plugin csv>
-  DataDir "/collectd/csv" # the folder under which statistics are written in csv
+  DataDir "/var/lib/collectd/csv"  # the folder where statistics are stored in csv
   StoreRates true
 </Plugin>
 
 <Plugin rrdtool>
-  DataDir "/collectd/rrd" # the folder under which statistics are written in rrd
+  DataDir "/var/lib/collectd/rrd"  # the folder where statistics are stored in rrd
 </Plugin>
 ```
 
