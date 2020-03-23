@@ -35,7 +35,6 @@
 #include "strategy.h"
 #include "pg.h"
 #include "error.h"
-#include "punt.h"
 #include "faces/app/face_prod.h"
 #include "faces/app/face_cons.h"
 #include "route.h"
@@ -314,7 +313,7 @@ vl_api_hicn_api_face_add_t_handler (vl_api_hicn_api_face_add_t * mp)
 
   hicn_main_t *sm = &hicn_main;
   hicn_face_id_t face_id;
-  vl_api_hicn_face_type_t face_type = clib_net_to_host_u32(mp->type);
+  vl_api_hicn_face_type_t face_type = clib_net_to_host_u32 (mp->type);
 
   switch (face_type)
     {
@@ -436,12 +435,12 @@ send_faces_details (vl_api_registration_t * reg,
 
   if (face->shared.face_type == hicn_face_ip_type)
     {
-      mp->type = clib_host_to_net_u32(IP_FACE);
+      mp->type = clib_host_to_net_u32 (IP_FACE);
       send_face_ip_details (face, &(mp->face.ip));
     }
   else if (face->shared.face_type == hicn_face_udp_type)
     {
-      mp->type = clib_host_to_net_u32(UDP_FACE);
+      mp->type = clib_host_to_net_u32 (UDP_FACE);
       send_face_udp_details (face, &(mp->face.udp));
     }
 
@@ -651,7 +650,6 @@ static void vl_api_hicn_api_route_get_t_handler
   fib_prefix_t prefix;
   ip_prefix_decode (&mp->prefix, &prefix);
   const dpo_id_t *hicn_dpo_id;
-  const hicn_dpo_vft_t *hicn_dpo_vft;
   hicn_dpo_ctx_t *hicn_dpo_ctx;
   u32 fib_index;
 
@@ -662,8 +660,7 @@ static void vl_api_hicn_api_route_get_t_handler
     {
       if (rv == HICN_ERROR_NONE)
 	{
-	  hicn_dpo_vft = hicn_dpo_get_vft(hicn_dpo_id->dpoi_type);
-	  hicn_dpo_ctx = hicn_dpo_vft->hicn_dpo_get_ctx(hicn_dpo_id->dpoi_index);
+	  hicn_dpo_ctx = hicn_strategy_dpo_ctx_get(hicn_dpo_id->dpoi_index);
 	  for (int i = 0; hicn_dpo_ctx != NULL && i < hicn_dpo_ctx->entry_count; i++)
 	    {
 	      if (dpo_id_is_valid(&hicn_dpo_ctx->next_hops[i]))
@@ -687,11 +684,10 @@ send_route_details (vl_api_registration_t * reg,
   mp->_vl_msg_id = htons (VL_API_HICN_API_ROUTES_DETAILS + hm->msg_id_base);
   mp->context = context;
 
-  ip_prefix_encode(pfx, &mp->prefix);
+  ip_prefix_encode (pfx, &mp->prefix);
   mp->nfaces = 0;
 
   const dpo_id_t *hicn_dpo_id;
-  const hicn_dpo_vft_t *hicn_dpo_vft;
   hicn_dpo_ctx_t *hicn_dpo_ctx;
   u32 fib_index;
 
@@ -699,9 +695,9 @@ send_route_details (vl_api_registration_t * reg,
 
   if (rv == HICN_ERROR_NONE)
     {
-      hicn_dpo_vft = hicn_dpo_get_vft (hicn_dpo_id->dpoi_type);
-      hicn_dpo_ctx = hicn_dpo_vft->hicn_dpo_get_ctx (hicn_dpo_id->dpoi_index);
-      for (int i = 0; hicn_dpo_ctx != NULL && i < hicn_dpo_ctx->entry_count; i++)
+      hicn_dpo_ctx = hicn_strategy_dpo_ctx_get (hicn_dpo_id->dpoi_index);
+      for (int i = 0; hicn_dpo_ctx != NULL && i < hicn_dpo_ctx->entry_count;
+	   i++)
 	{
 	  if (dpo_id_is_valid (&hicn_dpo_ctx->next_hops[i]))
 	    {
@@ -757,8 +753,7 @@ vl_api_hicn_api_route_dump_walk (fib_node_index_t fei, void *arg)
 }
 
 static void
-  vl_api_hicn_api_routes_dump_t_handler
-  (vl_api_hicn_api_routes_dump_t * mp)
+vl_api_hicn_api_routes_dump_t_handler (vl_api_hicn_api_routes_dump_t * mp)
 {
   vl_api_registration_t *reg;
   fib_table_t *fib_table;
@@ -841,79 +836,11 @@ static void vl_api_hicn_api_strategy_get_t_handler
     {
       if (rv == HICN_ERROR_NONE)
 	{
-	  const hicn_dpo_vft_t * hicn_dpo_vft =
-	    hicn_dpo_get_vft (strategy_id);
-	  hicn_dpo_vft->format_hicn_dpo (rmp->description, 0);}
+	  const hicn_strategy_vft_t * hicn_strategy_vft =
+	    hicn_dpo_get_strategy_vft (strategy_id);
+	  hicn_strategy_vft->hicn_format_strategy (rmp->description, 0);}
     }));
   /* *INDENT-ON* */
-}
-
-/****** PUNTING *******/
-
-static hicn_error_t
-add_ip_punting (vl_api_hicn_punting_ip_t * mp)
-{
-  vlib_main_t *vm = vlib_get_main ();
-  fib_prefix_t prefix;
-  ip_prefix_decode (&mp->prefix, &prefix);
-  u32 swif = clib_net_to_host_u32 (mp->swif);
-
-  return hicn_punt_interest_data_for_ip (vm, &prefix, swif, HICN_PUNT_IP_TYPE,
-					 NO_L2);
-}
-
-static hicn_error_t
-add_udp_punting (vl_api_hicn_punting_udp_t * mp)
-{
-  vlib_main_t *vm = vlib_get_main ();
-  fib_prefix_t prefix;
-  ip_prefix_decode (&mp->prefix, &prefix);
-  u32 swif = clib_net_to_host_u32 (mp->swif);
-  u16 sport = clib_net_to_host_u16 (mp->sport);
-  u16 dport = clib_net_to_host_u16 (mp->sport);
-  u8 type =
-    mp->ip_version == ADDRESS_IP6 ? HICN_PUNT_UDP6_TYPE : HICN_PUNT_UDP4_TYPE;
-
-  return hicn_punt_interest_data_for_udp (vm, &prefix, swif, type, sport,
-					  dport, NO_L2);
-}
-
-static void vl_api_hicn_api_punting_add_t_handler
-  (vl_api_hicn_api_punting_add_t * mp)
-{
-  vl_api_hicn_api_punting_add_reply_t *rmp;
-  int rv = HICN_ERROR_NONE;
-
-  hicn_main_t *sm = &hicn_main;
-
-  if (mp->type == IP_PUNT)
-    {
-      rv = add_ip_punting (&(mp->rule.ip));
-    }
-  else if (mp->type == UDP_PUNT)
-    {
-      rv = add_udp_punting (&(mp->rule.udp));
-    }
-  else
-    {
-      rv = HICN_ERROR_PUNT_INVAL;
-    }
-
-
-  REPLY_MACRO (VL_API_HICN_API_PUNTING_ADD_REPLY /* , rmp, mp, rv */ );
-}
-
-static void vl_api_hicn_api_punting_del_t_handler
-  (vl_api_hicn_api_punting_del_t * mp)
-{
-  vl_api_hicn_api_punting_del_reply_t *rmp;
-  int rv = HICN_ERROR_NONE;
-
-  hicn_main_t *sm = &hicn_main;
-
-  rv = HICN_ERROR_NONE;
-
-  REPLY_MACRO (VL_API_HICN_API_ROUTE_DEL_REPLY /* , rmp, mp, rv */ );
 }
 
 /************* APP FACE ****************/

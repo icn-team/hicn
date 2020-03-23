@@ -66,11 +66,13 @@ set(HICN_PLUGIN_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/mgmt.c
     ${CMAKE_CURRENT_SOURCE_DIR}/pcs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/route.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy_dpo_ctx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy_dpo_manager.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/strategy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/interest_pcslookup_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/interest_hitpit_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/interest_hitcs_node.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/data_input_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/data_pcslookup_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/data_fwd_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/data_push_node.c
@@ -92,7 +94,6 @@ set(HICN_PLUGIN_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/face_prod.c
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/face_prod_node.c
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/face_app_cli.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/punt.c
     ${CMAKE_CURRENT_SOURCE_DIR}/pg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/strategies/dpo_mw.c
     ${CMAKE_CURRENT_SOURCE_DIR}/strategies/strategy_mw.c
@@ -140,7 +141,6 @@ set(HICN_PLUGIN_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/address_mgr.h
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/face_cons.h
     ${CMAKE_CURRENT_SOURCE_DIR}/faces/app/face_prod.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/punt.h
     ${CMAKE_CURRENT_SOURCE_DIR}/pg.h
     ${CMAKE_CURRENT_SOURCE_DIR}/strategies/dpo_mw.h
     ${CMAKE_CURRENT_SOURCE_DIR}/strategies/strategy_mw.h
