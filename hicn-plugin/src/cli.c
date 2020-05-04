@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019 Cisco and/or its affiliates.
+ * Copyright (c) 2017-2020 Cisco and/or its affiliates.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -39,7 +39,6 @@ static vl_api_hicn_api_node_params_set_t node_ctl_params = {
   .pit_max_size = -1,
   .pit_max_lifetime_sec = -1.0f,
   .cs_max_size = -1,
-  .cs_reserved_app = -1,
 };
 
 typedef enum
@@ -62,8 +61,7 @@ hicn_cli_node_ctl_start_set_command_fn (vlib_main_t * vm,
 					  node_ctl_params.pit_max_size,
 					  node_ctl_params.
 					  pit_max_lifetime_sec,
-					  node_ctl_params.cs_max_size,
-					  node_ctl_params.cs_reserved_app);
+					  node_ctl_params.cs_max_size);
 
   vlib_cli_output (vm, "hicn: fwdr initialize => %s\n",
 		   get_error_string (ret));
@@ -106,8 +104,7 @@ hicn_cli_node_ctl_stop_set_command_fn (vlib_main_t * vm,
 					  node_ctl_params.pit_max_size,
 					  node_ctl_params.
 					  pit_max_lifetime_sec,
-					  node_ctl_params.cs_max_size,
-					  node_ctl_params.cs_reserved_app);
+					  node_ctl_params.cs_max_size);
 
   return (ret == HICN_ERROR_NONE) ? 0 : clib_error_return (0,
 							   get_error_string
@@ -135,7 +132,6 @@ hicn_cli_node_ctl_param_set_command_fn (vlib_main_t * vm,
 
   int table_size;
   f64 lifetime;
-  int cs_reserved_app;
 
   if (hicn_main.is_enabled)
     {
@@ -192,15 +188,6 @@ hicn_cli_node_ctl_param_set_command_fn (vlib_main_t * vm,
 		  break;
 		}
 	      node_ctl_params.cs_max_size = table_size;
-	    }
-	  else if (unformat (line_input, "app %d", &cs_reserved_app))
-	    {
-	      if (!DFLTD_RANGE_OK (cs_reserved_app, 0, 100))
-		{
-		  rv = HICN_ERROR_CS_CONFIG_SIZE_OOB;
-		  break;
-		}
-	      node_ctl_params.cs_reserved_app = cs_reserved_app;
 	    }
 	  else
 	    {
@@ -278,8 +265,7 @@ hicn_cli_show_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
     {
       if (node_ctl_params.pit_max_size == -1 &&
 	  node_ctl_params.pit_max_lifetime_sec == -1 &&
-	  node_ctl_params.cs_max_size == -1 &&
-	  node_ctl_params.cs_reserved_app == -1)
+	  node_ctl_params.cs_max_size == -1)
 	{
 	  ret = HICN_ERROR_FWD_NOT_ENABLED;
 	  goto done;
@@ -302,11 +288,6 @@ hicn_cli_show_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
 	  vlib_cli_output (vm, "  CS:: max entries:%d\n",
 			   node_ctl_params.cs_max_size);
 	}
-      if (node_ctl_params.cs_reserved_app != -1)
-	{
-	  vlib_cli_output (vm, "  CS:: reserved to app:%d\n",
-			   node_ctl_params.cs_reserved_app);
-	}
       goto done;
     }
   /* Globals */
@@ -314,16 +295,11 @@ hicn_cli_show_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
 		   "Forwarder: %sabled\n"
 		   "  PIT:: max entries:%d,"
 		   " lifetime default: max:%05.3f\n"
-		   "  CS::  max entries:%d, network entries:%d, app entries:%d (allocated %d, free %d)\n",
+		   "  CS::  max entries:%d\n",
 		   hicn_main.is_enabled ? "en" : "dis",
 		   hicn_infra_pit_size,
 		   ((f64) hicn_main.pit_lifetime_max_ms) / SEC_MS,
-		   hicn_infra_cs_size,
-		   hicn_infra_cs_size - hicn_main.pitcs.pcs_app_max,
-		   hicn_main.pitcs.pcs_app_max,
-		   hicn_main.pitcs.pcs_app_count,
-		   hicn_main.pitcs.pcs_app_max -
-		   hicn_main.pitcs.pcs_app_count);
+		   hicn_infra_cs_size);
 
   vl_api_hicn_api_node_stats_get_reply_t rm = { 0, }
   , *rmp = &rm;
@@ -388,17 +364,16 @@ done:
  * cli handler for 'fib'
  */
 static clib_error_t *
-hicn_cli_fib_set_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
-			     vlib_cli_command_t * cmd)
+hicn_cli_strategy_set_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
+                                  vlib_cli_command_t * cmd)
 {
   clib_error_t *cl_err = 0;
 
   int rv = HICN_ERROR_NONE;
   int addpfx = -1;
   ip46_address_t address;
-  hicn_face_id_t faceid = HICN_FACE_NULL;
   u32 strategy_id;
-  u8 plen = 0;
+  u32 plen = 0;
   fib_prefix_t prefix;
 
   /* Get a line of input. */
@@ -409,24 +384,13 @@ hicn_cli_fib_set_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
     }
   while (unformat_check_input (line_input) != UNFORMAT_END_OF_INPUT)
     {
-      if (addpfx == -1 && unformat (line_input, "add"))
-	{
-	  addpfx = 1;
-	}
-      else if (addpfx == -1 && unformat (line_input, "delete"))
-	{
-	  addpfx = 0;
-	}
-      else if (unformat (line_input, "set strategy %d", &strategy_id))
+      if (unformat (line_input, "set %d", &strategy_id))
 	{
 	  addpfx = 2;
 	}
       else if (addpfx != -1
 	       && unformat (line_input, "prefix %U/%d", unformat_ip46_address,
 			    &address, IP46_TYPE_ANY, &plen))
-	{;
-	}
-      else if (addpfx <= 1 && unformat (line_input, "face %u", &faceid))
 	{;
 	}
       else
@@ -441,63 +405,18 @@ hicn_cli_fib_set_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
   fib_prefix_from_ip46_addr (&address, &prefix);
   prefix.fp_len = plen;
   /* Check parse */
-  if (addpfx <= 1
-      && ((ip46_address_is_zero (&prefix.fp_addr))
-	  || faceid == HICN_FACE_NULL))
-    {
-      cl_err =
-	clib_error_return (0, "Please specify prefix and a valid faceid...");
-      goto done;
-    }
-  /* Check parse */
-  if ((ip46_address_is_zero (&prefix.fp_addr))
-      || (addpfx == 2 && hicn_dpo_strategy_id_is_valid (strategy_id)))
+  if (hicn_dpo_strategy_id_is_valid (strategy_id) == HICN_ERROR_DPO_MGR_ID_NOT_VALID)
     {
       cl_err = clib_error_return (0,
-				  "Please specify prefix and strategy_id...");
+				  "Please specify a valid strategy...");
       goto done;
     }
-  if (addpfx == 0)
-    {
-      if (ip46_address_is_zero (&prefix.fp_addr))
-	{
-	  cl_err = clib_error_return (0, "Please specify prefix");
-	  goto done;
-	}
-      if (faceid == HICN_FACE_NULL)
-	{
-	  rv = hicn_route_del (&prefix);
-	}
-      else
-	{
-	  rv = hicn_route_del_nhop (&prefix, faceid);
-	}
-      cl_err =
-	(rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
-							    get_error_string
-							    (rv));
 
-    }
-  else if (addpfx == 1)
-    {
-      rv = hicn_route_add (&faceid, 1, &prefix);
-      if (rv == HICN_ERROR_ROUTE_ALREADY_EXISTS)
-	{
-	  rv = hicn_route_add_nhops (&faceid, 1, &prefix);
-	}
-      cl_err =
-	(rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
-							    get_error_string
-							    (rv));
-    }
-  else if (addpfx == 2)
-    {
-      rv = hicn_route_set_strategy (&prefix, strategy_id);
-      cl_err =
-	(rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
-							    get_error_string
-							    (rv));
-    }
+  rv = hicn_route_set_strategy (&prefix, strategy_id);
+  cl_err =
+    (rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
+                                                        get_error_string
+                                                        (rv));
 done:
 
   return (cl_err);
@@ -783,6 +702,98 @@ hicn_cli_pgen_server_set_command_fn (vlib_main_t * vm,
   return cl_err;
 }
 
+static clib_error_t *
+hicn_enable_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
+			     vlib_cli_command_t * cmd)
+{
+  clib_error_t *cl_err = 0;
+
+  int rv = HICN_ERROR_NONE;
+  fib_prefix_t pfx;
+
+  /* Get a line of input. */
+  unformat_input_t _line_input, *line_input = &_line_input;
+  if (!unformat_user (main_input, unformat_line_input, line_input))
+    {
+      return (0);
+    }
+  while (unformat_check_input (line_input) != UNFORMAT_END_OF_INPUT)
+    {
+      if (unformat (line_input, "%U/%d",
+                    unformat_ip4_address, &pfx.fp_addr.ip4, &pfx.fp_len))
+	{
+          pfx.fp_proto = FIB_PROTOCOL_IP4;
+	}
+      else if (unformat (line_input, "%U/%d",
+			 unformat_ip6_address, &pfx.fp_addr.ip6, &pfx.fp_len))
+	{
+	  pfx.fp_proto = FIB_PROTOCOL_IP6;
+	}
+      else
+	{
+	  cl_err = clib_error_return (0, "%s '%U'",
+				      get_error_string (HICN_ERROR_CLI_INVAL),
+				      format_unformat_error, line_input);
+	  goto done;
+	}
+    }
+  rv = hicn_route_enable(&pfx);
+ done:
+
+  cl_err =
+    (rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
+                                                        get_error_string
+                                                        (rv));
+  return cl_err;
+}
+
+static clib_error_t *
+hicn_disable_command_fn (vlib_main_t * vm, unformat_input_t * main_input,
+                         vlib_cli_command_t * cmd)
+{
+  clib_error_t *cl_err = 0;
+
+  int rv = HICN_ERROR_NONE;
+  fib_prefix_t pfx;
+
+  /* Get a line of input. */
+  unformat_input_t _line_input, *line_input = &_line_input;
+  if (!unformat_user (main_input, unformat_line_input, line_input))
+    {
+      return (0);
+    }
+  while (unformat_check_input (line_input) != UNFORMAT_END_OF_INPUT)
+    {
+      if (unformat (line_input, "%U/%d",
+                    unformat_ip4_address, &pfx.fp_addr.ip4, &pfx.fp_len))
+	{
+          pfx.fp_proto = FIB_PROTOCOL_IP4;
+	}
+      else if (unformat (line_input, "%U/%d",
+			 unformat_ip6_address, &pfx.fp_addr.ip6, &pfx.fp_len))
+	{
+	  pfx.fp_proto = FIB_PROTOCOL_IP6;
+	}
+      else
+	{
+	  cl_err = clib_error_return (0, "%s '%U'",
+				      get_error_string (HICN_ERROR_CLI_INVAL),
+				      format_unformat_error, line_input);
+	  goto done;
+	}
+    }
+
+  rv = hicn_route_disable (&pfx);
+
+ done:
+  cl_err =
+    (rv == HICN_ERROR_NONE) ? NULL : clib_error_return (0,
+                                                        get_error_string
+                                                        (rv));
+  return cl_err;
+}
+
+
 /* cli declaration for 'control start' */
 /* *INDENT-OFF* */
 VLIB_CLI_COMMAND(hicn_cli_node_ctl_start_set_command, static)=
@@ -818,13 +829,12 @@ VLIB_CLI_COMMAND(hicn_cli_node_ctl_command, static)=
 };
 
 /* cli declaration for 'fib' */
-VLIB_CLI_COMMAND(hicn_cli_fib_set_command, static)=
-{
-	.path = "hicn fib",
-        .short_help = "hicn fib {{add | delete } prefix <prefix> face <facei_d> }"
-        " | set strategy <strategy_id> prefix <prefix>",
-        .function = hicn_cli_fib_set_command_fn,
-};
+VLIB_CLI_COMMAND(hicn_cli_strategy_set_command, static)=
+  {
+   .path = "hicn strategy",
+   .short_help = "hicn strategy set <strategy_id> prefix <prefix>",
+   .function = hicn_cli_strategy_set_command_fn,
+  };
 
 /* cli declaration for 'show' */
 VLIB_CLI_COMMAND(hicn_cli_show_command, static)=
@@ -853,6 +863,25 @@ VLIB_CLI_COMMAND(hicn_cli_pgen_server_set_command, static)=
         .long_help = "Run hicn in packet-gen server mode\n",
         .function = hicn_cli_pgen_server_set_command_fn,
 };
+
+/* cli declaration for 'hicn pgen client' */
+VLIB_CLI_COMMAND(hicn_enable_command, static)=
+  {
+   .path = "hicn enable",
+   .short_help = "hicn enable <prefix>",
+   .long_help = "Enable hicn for the give prefix\n",
+   .function = hicn_enable_command_fn,
+  };
+
+/* cli declaration for 'hicn pgen client' */
+VLIB_CLI_COMMAND(hicn_disable_command, static)=
+  {
+   .path = "hicn disable",
+   .short_help = "hicn disable <prefix>",
+   .long_help = "Disable hicn for the give prefix\n",
+   .function = hicn_disable_command_fn,
+  };
+
 /* *INDENT-ON* */
 
 /*

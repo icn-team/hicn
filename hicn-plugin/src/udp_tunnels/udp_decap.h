@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019 Cisco and/or its affiliates.
+ * Copyright (c) 2020 Cisco and/or its affiliates.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -13,23 +13,4 @@
  * limitations under the License.
  */
 
-#ifndef __HICN_FACE_UDP_NODE_H__
-#define __HICN_FACE_UDP_NODE_H__
-
-#include <vlib/vlib.h>
-#include <vnet/vnet.h>
-
-extern vlib_node_registration_t hicn_face_udp4_input_node;
-extern vlib_node_registration_t hicn_face_udp6_input_node;
-extern vlib_node_registration_t hicn_face_udp4_output_node;
-extern vlib_node_registration_t hicn_face_udp6_output_node;
-
-#endif // __HICN_FACE_UDP_NODE_H__
-
-/*
- * fd.io coding-style-patch-verification: ON
- *
- * Local Variables:
- * eval: (c-set-style "gnu")
- * End:
- */
+extern vlib_node_registration_t udp_decap_node;
