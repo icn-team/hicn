@@ -1,0 +1,31 @@
+language: c
+env:
+
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "lHmBD8AnKoIfl5IX2Gn6zq0HTXeA/0RZPHu5m6dKltbjxuP/GcFl9te3EatDmZVXHKRqBqrKMj7puBedTf1mdbQKABFJZ6TCurbiT2xCczWYPJB98L7FQ/BVSsqyo2wXDaPyVJXP4OYUYkjRqH2ClxwqZuuvpcn+vm7OP3SwKX8owCQr9OOoWMR6dhjytOW16yQB9Zt6yK+oPb7rZmdaAw7IL2qOM1ZF+C1kJi5NWFJ9IQxfz3vnZV15AmMR7/GKF6rM0ge8Ew2P8AaVzxl1wGPZFRymDYaH7NTSqODe1fnaXYwx9adDnmfLepxk2VJt3hDuXFR4pUIHaVO9SOps7U+CWN9Rclj6IQy44WkZx6+x+P6PamtnDFrP+snZGgm01ViLHnJSUMx4AduYqEteZxmoY7DlFsrs56zKY5j3ZKPQvsLsNfe9Ub+qLiWZklS6Q9M8qJqosKH3cUtNb/giPSAb1VT0/JggrLOVzDGPWWiNn2gk7LhuUxZAYdNrCD2TNB7KIIoxChzoiyNEPelUVvrf//IjfhTr/55sxDDvE2Axeul3wTEF8L+8JB/kfQOALQu/QuwsMZYOK+eV/NHLpz8N8Tzo1afZLjoZ/ipz/1YtL780P8uMw5O0J55dMj5MYEytkfOsW9DfTTF5OFROrNLOPulf+w2qoJcQ9VTGm28="
+
+before_install:
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+dist: bionic
+before_script:
+    - curl -s https://packagecloud.io/install/repositories/fdio/release/script.deb.sh | sudo bash
+    - echo "deb [trusted=yes] https://dl.bintray.com/icn-team/apt-hicn-extras bionic main" | tee -a /etc/apt/sources.list
+    - sudo apt-get update
+    - sudo apt-get install -y libyang sysrepo vpp-dev vpp libparc-dev python3-ply libasio-dev
+    - sudo apt-get install -y libmemif-dev libmemif libconfig-dev collectd collectd-dev
+
+script:
+    - mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..
+
+addons:
+  coverity_scan:
+    project:
+      name: "icn-team/hicn"
+      description: "Run a coverity scan on the FDio/hICN project"
+    notification_email: muscariello@ieee.org
+    build_command_prepend:  "mkdir build; cd build; cmake -DBUILD_HICNPLUGIN=ON -DBUILD_SYSREPOPLUGIN=ON -DBUILD_TELEMETRY=ON ..; export COVERITY_UNSUPPORTED_COMPILER_INVOCATION=1"
+    build_command: "make"
+    branch_pattern: coverity_scan
